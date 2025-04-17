@@ -18,27 +18,25 @@ Dynamic:
 5. (How the fee is managed?)
 
 
+Questions:
+
 @? How the fees are calculated
 @? How a price T-Swap oralce is used for the fee calculation
 @? What tokens are borrowed/lended
 @? What happens if the calculated fee is zero (know issue)
+@? Why using different license types on ITSwapPool.sol (AGPL-3.0-only) and IThunderLoan.sol (MIT)
 
+[](./src/interfaces/IPoolFactory.sol)
 
 Files:
 
-cloc --by-file ./src
+ Checked | Code | Files
+    +    | 4    | [](./src/interfaces/IPoolFactory.sol)
+    +    | 4    | [](./src/interfaces/IThunderLoan.sol)
+    +    | 4    | [](./src/interfaces/ITSwapPool.sol)
+    -    | 13   | [](./src/interfaces/IFlashLoanReceiver.sol)
+    -    | 23   | [](./src/protocol/OracleUpgradeable.sol)
+    -    | 65   | [](./src/protocol/AssetToken.sol)
+    -    | 172  | [](./src/upgradedProtocol/ThunderLoanUpgraded.sol)
+    -    | 176  | [](./src/protocol/ThunderLoan.sol)
 
--------------------------------------------------------------------------------------------------
-File                                                          blank        comment           code
--------------------------------------------------------------------------------------------------
-./src/protocol/ThunderLoan.sol                                   30             98            176
-./src/upgradedProtocol/ThunderLoanUpgraded.sol                   29             91            172
-./src/protocol/AssetToken.sol                                    16             24             65
-./src/protocol/OracleUpgradeable.sol                              7              5             23
-./src/interfaces/IFlashLoanReceiver.sol                           2              5             13
-./src/interfaces/IPoolFactory.sol                                 1              3              4 @Check
-./src/interfaces/ITSwapPool.sol                                   1              1              4
-./src/interfaces/IThunderLoan.sol                                 1              1              4 
--------------------------------------------------------------------------------------------------
-SUM:                                                             87            228            461
--------------------------------------------------------------------------------------------------

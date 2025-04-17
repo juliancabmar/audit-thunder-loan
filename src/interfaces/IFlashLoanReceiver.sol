@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity 0.8.20;
 
+// @audit-info - IThunderLoan is used indirectly by test/mocks/MockFlashLoanReceiver.sol, but not in this file
 import { IThunderLoan } from "./IThunderLoan.sol";
 
 /**
