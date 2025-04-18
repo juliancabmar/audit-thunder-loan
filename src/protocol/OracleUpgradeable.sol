@@ -5,6 +5,7 @@ import { ITSwapPool } from "../interfaces/ITSwapPool.sol";
 import { IPoolFactory } from "../interfaces/IPoolFactory.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+// @? What openzeppelin Initializable dependency do?
 contract OracleUpgradeable is Initializable {
     address private s_poolFactory;
 
@@ -19,6 +20,7 @@ contract OracleUpgradeable is Initializable {
     }
 
     // @audit-info - not address(0x) checked
+    // @? What happend if not exist a pool for this token in the tswap protocol?
     function getPriceInWeth(address token) public view returns (uint256) {
         address swapPoolOfToken = IPoolFactory(s_poolFactory).getPool(token);
         return ITSwapPool(swapPoolOfToken).getPriceOfOnePoolTokenInWeth();
