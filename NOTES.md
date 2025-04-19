@@ -42,19 +42,26 @@ Files:
     -    | 176  | [](./src/protocol/ThunderLoan.sol)
 
 
- Exchange rate =  1 ATOK / 2 DAI
-A deposit 1000 DAI  | Total deposit: 1000 DAI
-B deposit 1000 DAI  | Total deposit: 2000 DAI
-C deposit 1000 DAI  | Total deposit: 3000 DAI
+timestamp:
 
-A receive 500 ATOK
-B receive 500 ATOK
-C receive 500 ATOK
+15:43:40
 
-X borrow 1000 DAI  | Total deposit: 2000 DAI
-X pay back 1000 DAI for the lending  | Total deposit: 3000 DAI
-X pay back 50 DAI (5%) of fee  | Total deposit: 3050 DAI
+AUX:
 
-A send 500 ATOK to the protocol
-the protocol calculates: 500 / (Total ATOK) * (Total deposit) = 1016.6 DAI
-A receive 1016.6 DAI  | Total deposit: 2033.4 DAI
+ // @c - The follow are my commnets about the function
+// User give X (amount of USDC) to the deposit func as parameter
+// assetToken are minted based on ER (exchange rate) and X and the sender is he owner
+// ER is updated
+// X is transfered to assetToken conatract by the User
+
+User USDC balance: 100 USDC
+User FLUSDC balance: 0 FLUSDC
+FLUSDC Exchange rate: 2
+(Deposit)
+User USDC balance: 0 USDC
+User FLUSDC balance: 50 FLUSDC
+FLUSDC Exchange rate: 1.94 (NEW)
+(Reedemm)
+User USDC balance: 97 USDC
+User FLUSDC balance: 0 FLUSDC
+

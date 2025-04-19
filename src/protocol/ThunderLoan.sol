@@ -66,6 +66,7 @@ pragma solidity 0.8.20;
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { AssetToken } from "./AssetToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// @c For get the name and symbol of the token (methods not included on IERC20)
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -92,13 +93,17 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+    // @? Why is this used for?
+    // @audit-info - this variable is used only in this contract, change to private
     mapping(IERC20 => AssetToken) public s_tokenToAssetToken;
 
     // The fee in WEI, it should have 18 decimals. Each flash loan takes a flat fee of the token price.
-    // @audit-gas - s_feePrecision must be constant
+    // @audit-gas - s_feePrecision must be immutable
     uint256 private s_feePrecision;
     uint256 private s_flashLoanFee; // 0.3% ETH fee
 
+    // @? - Why this mapping is used for?
+    // @c - probably for trace is a asset is currently loaned
     mapping(IERC20 token => bool currentlyFlashLoaning) private s_currentlyFlashLoaning;
 
     /*//////////////////////////////////////////////////////////////
@@ -143,6 +148,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     // @audit-low - initialize() can be front run
     function initialize(address tswapAddress) external initializer {
         __Ownable_init(msg.sender);
+        // @? - This function is empty, why is it used for?
         __UUPSUpgradeable_init();
         __Oracle_init(tswapAddress);
         // @audit-info -
@@ -150,15 +156,27 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         // @audit-info - avoid magic numbers for s_flashLoanFee variable
         s_flashLoanFee = 3e15; // 0.3% ETH fee
     }
+    // @audit-info - natspec needed for this important function
+    // @c - The follow are my commnets about the function
+    // User give X (amount of USDC) to the deposit func as parameter
+    // assetToken are minted based on ER (exchange rate) and X and the sender is he owner
+    // ER is updated
+    // X is transfered to assetToken conatract by the User
 
     function deposit(IERC20 token, uint256 amount) external revertIfZero(amount) revertIfNotAllowedToken(token) {
         AssetToken assetToken = s_tokenToAssetToken[token];
         uint256 exchangeRate = assetToken.getExchangeRate();
+
         uint256 mintAmount = (amount * assetToken.EXCHANGE_RATE_PRECISION()) / exchangeRate;
         emit Deposit(msg.sender, token, amount);
         assetToken.mint(msg.sender, mintAmount);
+        // @? - Why I need a fee in the deposit function?
         uint256 calculatedFee = getCalculatedFee(token, amount);
+
         assetToken.updateExchangeRate(calculatedFee);
+        // @? - Why AssetToken have the control of my underlying tokens?
+        // @? - We pay a different Exchange rate if sell our assetTokens than when we buying?
+        // @? - safeTranferFrom protect on out of funds situation?
         token.safeTransferFrom(msg.sender, address(assetToken), amount);
     }
 
@@ -183,6 +201,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         assetToken.burn(msg.sender, amountOfAssetToken);
         assetToken.transferUnderlyingTo(msg.sender, amountUnderlying);
     }
+    // @audit-info - non natspec
 
     function flashloan(
         address receiverAddress,
@@ -245,6 +264,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         AssetToken assetToken = s_tokenToAssetToken[token];
         token.safeTransferFrom(msg.sender, address(assetToken), amount);
     }
+    // @audit-ok 21:17
 
     function setAllowedToken(IERC20 token, bool allowed) external onlyOwner returns (AssetToken) {
         if (allowed) {
@@ -264,6 +284,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
             return assetToken;
         }
     }
+    // @audit Follow up
 
     function getCalculatedFee(IERC20 token, uint256 amount) public view returns (uint256 fee) {
         //slither-disable-next-line divide-before-multiply
