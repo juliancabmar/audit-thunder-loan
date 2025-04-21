@@ -54,8 +54,8 @@ contract AssetToken is ERC20 {
     /*//////////////////////////////////////////////////////////////
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    // @? underlying address can be zero?
-    // @? why
+    // @a? underlying address can be zero?
+    // No, it have a modifier what prevent this
     constructor(
         address thunderLoan,
         IERC20 underlying,
@@ -78,14 +78,15 @@ contract AssetToken is ERC20 {
     function burn(address account, uint256 amount) external onlyThunderLoan {
         _burn(account, amount);
     }
-    // @? what happens if is used USDC and blacklists the Thunderloan contract?
-    // @? what happens if is used USDC and blacklists the Asset contract?
+    // @a? what happens if is used USDC and blacklists the Thunderloan contract?
+    // @a? what happens if is used USDC and blacklists the Asset contract?
+    // @a (is the follow bug)
+    // @audit-medium - The token balance in the protocol wiil be frozen
 
     function transferUnderlyingTo(address to, uint256 amount) external onlyThunderLoan {
         i_underlying.safeTransfer(to, amount);
     }
     // @audit-info - comments about the function must be up the function
-    // @? Why the exchange rate need to be updated and not just used the incremented total balance divided by the
     // shares?
 
     function updateExchangeRate(uint256 fee) external onlyThunderLoan {

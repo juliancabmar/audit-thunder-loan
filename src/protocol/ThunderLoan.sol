@@ -288,6 +288,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
 
     function getCalculatedFee(IERC20 token, uint256 amount) public view returns (uint256 fee) {
         //slither-disable-next-line divide-before-multiply
+        // @audit-high - getPriceInweth() can be lower than s_feePrecision (1e18) causing truncation
         uint256 valueOfBorrowedToken = (amount * getPriceInWeth(address(token))) / s_feePrecision;
         //slither-disable-next-line divide-before-multiply
         fee = (valueOfBorrowedToken * s_flashLoanFee) / s_feePrecision;

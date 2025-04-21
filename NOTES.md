@@ -39,7 +39,7 @@ Files:
     +    | 23   | [](./src/protocol/OracleUpgradeable.sol)
     +    | 65   | [](./src/protocol/AssetToken.sol)
     -    | 172  | [](./src/upgradedProtocol/ThunderLoanUpgraded.sol)
-    -    | 176  | [](./src/protocol/ThunderLoan.sol)
+    +    | 176  | [](./src/protocol/ThunderLoan.sol)
 
 
 timestamp:
@@ -48,20 +48,29 @@ timestamp:
 
 AUX:
 
- // @c - The follow are my commnets about the function
-// User give X (amount of USDC) to the deposit func as parameter
-// assetToken are minted based on ER (exchange rate) and X and the sender is he owner
-// ER is updated
-// X is transfered to assetToken conatract by the User
+-"underlying token" = USDC
 
-User USDC balance: 100 USDC
-User FLUSDC balance: 0 FLUSDC
-FLUSDC Exchange rate: 2
-(Deposit)
-User USDC balance: 0 USDC
-User FLUSDC balance: 50 FLUSDC
-FLUSDC Exchange rate: 1.94 (NEW)
-(Reedemm)
-User USDC balance: 97 USDC
-User FLUSDC balance: 0 FLUSDC
+-"asset token" = tlUSDC
+
+ThunderLoan::setAllowedToken //(Set alloed tokens on "s_tokenToAssetToken" mapping)
+
+
+ThunderLoan::deposit
+    - mint the new tokens based in the exchange rate
+    ThunderLoan::getCalculatedFee
+        OracleUpgradable::getPriceInWeth
+            ITSwapPool::getPriceOfOnePoolTokenInWeth
+                TSwapPool::getOutputAmountBasedOnInput(
+                    1e18,
+                    i_poolToken.balanceOf(address(this)),
+                    i_wethToken.balanceOf(address(this))
+                );
+    - update exchange rate += fee
+
+
+ThunderLoan::redeem
+
+
+ThunderLoan::flashloan
+
 
