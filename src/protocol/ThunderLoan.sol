@@ -151,7 +151,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         // @? - This function is empty, why is it used for?
         __UUPSUpgradeable_init();
         __Oracle_init(tswapAddress);
-        // @audit-info -
         s_feePrecision = 1e18;
         // @audit-info - avoid magic numbers for s_flashLoanFee variable
         s_flashLoanFee = 3e15; // 0.3% ETH fee
@@ -170,10 +169,10 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         uint256 mintAmount = (amount * assetToken.EXCHANGE_RATE_PRECISION()) / exchangeRate;
         emit Deposit(msg.sender, token, amount);
         assetToken.mint(msg.sender, mintAmount);
-        // @? - Why I need a fee in the deposit function?
+        // @audit-high - unneeded exchange rate update make the liquidity providers can't withdraw his full balance
         uint256 calculatedFee = getCalculatedFee(token, amount);
-
         assetToken.updateExchangeRate(calculatedFee);
+
         // @? - Why AssetToken have the control of my underlying tokens?
         // @? - We pay a different Exchange rate if sell our assetTokens than when we buying?
         // @? - safeTranferFrom protect on out of funds situation?
@@ -193,6 +192,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     {
         AssetToken assetToken = s_tokenToAssetToken[token];
         uint256 exchangeRate = assetToken.getExchangeRate();
+
         if (amountOfAssetToken == type(uint256).max) {
             amountOfAssetToken = assetToken.balanceOf(msg.sender);
         }
@@ -262,9 +262,9 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
             revert ThunderLoan__NotCurrentlyFlashLoaning();
         }
         AssetToken assetToken = s_tokenToAssetToken[token];
+        // @? not will be transfer to the liquidity provider?
         token.safeTransferFrom(msg.sender, address(assetToken), amount);
     }
-    // @audit-ok 21:17
 
     function setAllowedToken(IERC20 token, bool allowed) external onlyOwner returns (AssetToken) {
         if (allowed) {
