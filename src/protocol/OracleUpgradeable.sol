@@ -5,7 +5,6 @@ import { ITSwapPool } from "../interfaces/ITSwapPool.sol";
 import { IPoolFactory } from "../interfaces/IPoolFactory.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-// @? What openzeppelin Initializable dependency do?
 contract OracleUpgradeable is Initializable {
     address private s_poolFactory;
 

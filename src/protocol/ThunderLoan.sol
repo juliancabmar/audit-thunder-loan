@@ -93,7 +93,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    // @? Why is this used for?
     // @audit-info - this variable is used only in this contract, change to private
     mapping(IERC20 => AssetToken) public s_tokenToAssetToken;
 
@@ -102,8 +101,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     uint256 private s_feePrecision;
     uint256 private s_flashLoanFee; // 0.3% ETH fee
 
-    // @? - Why this mapping is used for?
-    // @c - probably for trace is a asset is currently loaned
     mapping(IERC20 token => bool currentlyFlashLoaning) private s_currentlyFlashLoaning;
 
     /*//////////////////////////////////////////////////////////////
@@ -148,7 +145,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     // @audit-low - initialize() can be front run
     function initialize(address tswapAddress) external initializer {
         __Ownable_init(msg.sender);
-        // @? - This function is empty, why is it used for?
         __UUPSUpgradeable_init();
         __Oracle_init(tswapAddress);
         s_feePrecision = 1e18;
@@ -173,9 +169,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
         uint256 calculatedFee = getCalculatedFee(token, amount);
         assetToken.updateExchangeRate(calculatedFee);
 
-        // @? - Why AssetToken have the control of my underlying tokens?
-        // @? - We pay a different Exchange rate if sell our assetTokens than when we buying?
-        // @? - safeTranferFrom protect on out of funds situation?
         token.safeTransferFrom(msg.sender, address(assetToken), amount);
     }
 
@@ -262,7 +255,6 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
             revert ThunderLoan__NotCurrentlyFlashLoaning();
         }
         AssetToken assetToken = s_tokenToAssetToken[token];
-        // @? not will be transfer to the liquidity provider?
         token.safeTransferFrom(msg.sender, address(assetToken), amount);
     }
 

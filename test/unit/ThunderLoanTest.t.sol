@@ -95,22 +95,22 @@ contract ThunderLoanTest is BaseTest {
         uint256 amountToBorrow = AMOUNT * 10;
         uint256 calculatedFee = thunderLoan.getCalculatedFee(tokenA, amountToBorrow);
 
-        uint256 startingAssetTokenBalance = tokenA.balanceOf(address(asset));
-        console.log("Starting underlyin on Asset Token Balance: ", startingAssetTokenBalance);
+        // uint256 startingAssetTokenBalance = tokenA.balanceOf(address(asset));
+        // console.log("Starting underlyin on Asset Token Balance: ", startingAssetTokenBalance);
 
         vm.startPrank(user);
         tokenA.mint(address(mockFlashLoanReceiver), calculatedFee); // mint some tokens for cancel the fees
         thunderLoan.flashloan(address(mockFlashLoanReceiver), tokenA, amountToBorrow, "");
         vm.stopPrank();
 
-        uint256 endingAssetTokenBalance = tokenA.balanceOf(address(asset));
-        console.log("Ending underlyin on Asset Token Balance: ", endingAssetTokenBalance);
+        // uint256 endingAssetTokenBalance = tokenA.balanceOf(address(asset));
+        // console.log("Ending underlyin on Asset Token Balance: ", endingAssetTokenBalance);
 
         uint256 amountToRedeem = asset.balanceOf(liquidityProvider);
-        uint256 exchangeRate = asset.getExchangeRate();
-        uint256 amountUnderlying = (amountToRedeem * exchangeRate) / asset.EXCHANGE_RATE_PRECISION();
+        // uint256 exchangeRate = asset.getExchangeRate();
+        // uint256 amountUnderlying = (amountToRedeem * exchangeRate) / asset.EXCHANGE_RATE_PRECISION();
 
-        console.log("Provider underlying: ", amountUnderlying);
+        // console.log("Provider underlying: ", amountUnderlying);
 
         vm.prank(liquidityProvider);
         thunderLoan.redeem(tokenA, amountToRedeem);
