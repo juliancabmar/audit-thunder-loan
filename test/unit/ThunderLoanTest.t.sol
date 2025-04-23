@@ -5,6 +5,11 @@ import { Test, console } from "forge-std/Test.sol";
 import { BaseTest, ThunderLoan } from "./BaseTest.t.sol";
 import { AssetToken } from "../../src/protocol/AssetToken.sol";
 import { MockFlashLoanReceiver } from "../mocks/MockFlashLoanReceiver.sol";
+import { ERC20Mock } from "../mocks/ERC20Mock.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IFlashLoanReceiver } from "../../src/interfaces/IFlashLoanReceiver.sol";
+import { BuffMockPoolFactory } from "../mocks/BuffMockPoolFactory.sol";
+import { BuffMockTSwap } from "../mocks/BuffMockTSwap.sol";
 
 contract ThunderLoanTest is BaseTest {
     uint256 constant AMOUNT = 10e18;
@@ -114,5 +119,43 @@ contract ThunderLoanTest is BaseTest {
 
         vm.prank(liquidityProvider);
         thunderLoan.redeem(tokenA, amountToRedeem);
+    }
+
+    function testOracleManipulation() public {
+        // 1. setup contracts
+        thunderLoan = new ThunderLoan();
+        tokenA = new ERC20Mock();
+        proxy = new ERC1967Proxy(address(thunderLoan), "");
+        BuffMockPoolFactory pf = new BuffMockPoolFactory(address(tokenA));
+        // Create a TSwap between Weth/TokenA
+        address tswapPool = pf.createPool(address(tokenA));
+        thunderLoan = ThunderLoan(address(proxy));
+        thunderLoan.initialize(address(pf));
+
+        // 2. Fund TSwap
+        vm.startPrank(liquidityProvider);
+        tokenA.mint(liquidityProvider, 100e18);
+        tokenA.approve(address(tswapPool), 100e18);
+        weth.mint(liquidityProvider, 100e18);
+        weth.approve(address(tswapPool), 100e18);
+        BuffMockTSwap(tswapPool).deposit(100e18, 100e18, 100e18, block.timestamp);
+        vm.stopPrank();
+        // Ratio is 1:1
+
+        // 3. Approve tokenA on ThunderLoan
+        vm.prank(thunderLoan.owner());
+        thunderLoan.setAllowedToken(tokenA, true);
+
+        // 4. Fund ThunderLoan
+        vm.startPrank(liquidityProvider);
+        tokenA.mint(liquidityProvider, 1000e18);
+        tokenA.approve(address(thunderLoan), 1000e18);
+        thunderLoan.deposit(tokenA, 1000e18);
+        vm.stopPrank();
+        //  Now we have 1000 tokenA on ThunderLoan
+
+        // 5. We are going to take 2 flash loans
+        //     a. To nuke the price of the Weth/tokenA on TSwap
+        //     b. To show thatdoing so greatly reduces the fees we pay on ThundeerLoan
     }
 }
