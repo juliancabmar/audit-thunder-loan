@@ -13,6 +13,9 @@ docs/
 # Libs
 lib/
 
+#Utils
+audit-utils
+
 # Dotenv file
 .env
 broadcast/ 
