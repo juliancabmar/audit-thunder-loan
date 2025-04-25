@@ -175,6 +175,7 @@ contract ThunderLoan is Initializable, OwnableUpgradeable, UUPSUpgradeable, Orac
     /// @notice Withdraws the underlying token from the asset token
     /// @param token The token they want to withdraw from
     /// @param amountOfAssetToken The amount of the underlying they want to withdraw
+    // @audit-high - user can't redeem all asset tokens
     function redeem(
         IERC20 token,
         uint256 amountOfAssetToken

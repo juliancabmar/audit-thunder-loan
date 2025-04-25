@@ -11,6 +11,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IFlashLoanReceiver } from "../../src/interfaces/IFlashLoanReceiver.sol";
 import { BuffMockPoolFactory } from "../mocks/BuffMockPoolFactory.sol";
 import { BuffMockTSwap } from "../mocks/BuffMockTSwap.sol";
+import { ThunderLoanUpgraded } from "../../src/upgradedProtocol/ThunderLoanUpgraded.sol";
 
 contract ThunderLoanTest is BaseTest {
     uint256 constant AMOUNT = 10e18;
@@ -103,6 +104,7 @@ contract ThunderLoanTest is BaseTest {
 
         // uint256 startingAssetTokenBalance = tokenA.balanceOf(address(asset));
         // console.log("Starting underlyin on Asset Token Balance: ", startingAssetTokenBalance);
+        uint256 feeBeforeUpgrade = thunderLoan.getFee();
 
         vm.startPrank(user);
         tokenA.mint(address(mockFlashLoanReceiver), calculatedFee); // mint some tokens for cancel the fees
@@ -194,13 +196,30 @@ contract ThunderLoanTest is BaseTest {
         assertEq(tokenA.balanceOf(address(dor)), 50e18 + fee);
     }
 
-    function testDepositAndRedeem() public setAllowedToken hasDeposits {
-        uint256 amountDeposited = DEPOSIT_AMOUNT;
+    function testDepositAndRedeem() public setAllowedToken {
         vm.startPrank(liquidityProvider);
         tokenA.mint(liquidityProvider, DEPOSIT_AMOUNT);
+        console.log("Init balance: ", tokenA.balanceOf(liquidityProvider));
         tokenA.approve(address(thunderLoan), DEPOSIT_AMOUNT);
         thunderLoan.deposit(tokenA, DEPOSIT_AMOUNT);
+        console.log("Post deposit balance: ", tokenA.balanceOf(liquidityProvider));
+        AssetToken assetToken = thunderLoan.getAssetFromToken(tokenA);
+        console.log("Post deposit AssetToken balance: ", assetToken.balanceOf(liquidityProvider));
+        thunderLoan.redeem(tokenA, assetToken.balanceOf(liquidityProvider));
         vm.stopPrank();
+    }
+
+    function testUpgradeBreaks() public {
+        uint256 feeBeforeUpgrade = thunderLoan.getFee();
+        vm.startPrank(thunderLoan.owner());
+        ThunderLoanUpgraded upgraded = new ThunderLoanUpgraded();
+        thunderLoan.upgradeToAndCall(address(upgraded), "");
+        uint256 feeAfterUpgrade = thunderLoan.getFee();
+        vm.stopPrank();
+        console.log("feeBeforeUpgrade: ", feeBeforeUpgrade);
+        console.log("feeAfterUpgrade: ", feeAfterUpgrade);
+
+        assert(feeBeforeUpgrade < feeAfterUpgrade);
     }
 }
 
