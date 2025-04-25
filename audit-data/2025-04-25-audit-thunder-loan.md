@@ -57,7 +57,7 @@ Assisting Auditors:
 
 - [Thunder Loan Audit Report](#thunder-loan-audit-report)
 - [Table of contents](#table-of-contents)
-- [About YOUR\_NAME\_HERE](#about-your_name_here)
+- [About Julian Cabrera Marceglia](#about-julian-cabrera-marceglia)
 - [Disclaimer](#disclaimer)
 - [Risk Classification](#risk-classification)
 - [Audit Details](#audit-details)
@@ -94,7 +94,7 @@ Assisting Auditors:
 </details>
 </br>
 
-# About Julián Cabrera Marceglia
+# About Julian Cabrera Marceglia
 
 I am a security researcher who want to make the web3 enviroment safer.
 
@@ -117,7 +117,7 @@ The Julián Cabrera Marceglia team makes all effort to find as many vulnerabilit
 ```
 code base: https://github.com/juliancabmar/audit-thunder-loan
 
-commit hash: 026da6e73fde0dd0a650d623d0411547e3188909
+commit hash: c82f9a656a52afc5320ce61ea0d8cbbd76f6d2f1
 ```
 
 ## Scope 
@@ -138,7 +138,12 @@ commit hash: 026da6e73fde0dd0a650d623d0411547e3188909
 
 # Protocol Summary 
 
-Puppy Rafle is a protocol dedicated to raffling off puppy NFTs with variying rarities. A portion of entrance fees go to the winner, and a fee is taken by another address decided by the protocol owner. 
+The ThunderLoan protocol is meant to do the following:
+
+1. Give users a way to create flash loans
+2. Give liquidity providers a way to earn money off their capital
+
+Liquidity providers can `deposit` assets into `ThunderLoan` and be given `AssetTokens` in return. These `AssetTokens` gain interest over time depending on how often people take out flash loans.
 
 ## Roles
 
